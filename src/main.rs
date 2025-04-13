@@ -1,7 +1,7 @@
 use rand::Rng;
 use crate::board::{Board, Team};
 use crate::card::Card;
-use crate::interface::{display_board, display_message};
+use crate::interface::{ask_chips_bet, ask_gamble, display_board, display_message};
 use crate::player::Player;
 
 mod player;
@@ -13,21 +13,22 @@ const NB_JOUEURS: usize = 4;
 const CARTES_PAR_JOUEUR: usize = 5;
 const TOTAL_CARTE: usize = 20;
 const TOURS: usize = 3;
-const VICTOIRE: usize = 1;
-const DEFAITE: usize = 0;
+const VICTOIRE: i32 = 1;
+const DEFAITE: i32 = 0;
 const NB_JETONS: usize = 20;
 
 
 fn main() {
     let mut board = Board::new();
     let mut players: Vec<Player> = Vec::new();
-    for i in 0..NB_JOUEURS {
+    for i in 1..NB_JOUEURS + 1 {
         players.push(Player::new(i));
     }
 
     initialiser_jeu(&mut board, &mut players);
     distribuer_cartes(&mut players);
     distribuer_jetons(&mut players);
+    faire_pari(&mut players);
 
     //LANCEMENT DES 3 TOURS
     for tour in 1..TOURS + 1 {
@@ -78,6 +79,7 @@ fn distribuer_cartes(players: &mut Vec<Player>) {
         }
     }
 
+
     display_message("Les cartes ont été distribuées à tous les joueurs.");
 }
 
@@ -85,4 +87,43 @@ fn distribuer_jetons(players: &mut Vec<Player>) {
     for i in 0..NB_JOUEURS {
         players[i].set_chips(NB_JETONS);
     }
+}
+
+fn faire_pari(players: &mut Vec<Player>) {
+    display_message("\n============================================================");
+    display_message("               >>> PREMIER TOUR DE PARIS <<<             ");
+    display_message("============================================================");
+
+    for player in &mut *players {
+        let pari = ask_gamble(player);
+
+        if pari == VICTOIRE {
+            println!("le joueur {} à parié sur VICTOIRE", player.get_player_id());
+        } else {
+            println!("le joueur {} à parié sur DEFAITE", player.get_player_id());
+        }
+    }
+
+    display_message("\n============================================================");
+    display_message("               >>> DEUXIEME TOUR DE PARIS <<<                 ");
+    display_message("================================================================");
+
+    for player in players {
+        let pari = ask_gamble(player);
+        player.set_slate(pari as usize);
+
+        if pari == VICTOIRE {
+            println!("le joueur {} à parié sur VICTOIRE", player.get_player_id());
+        } else {
+            println!("le joueur {} à parié sur DEFAITE", player.get_player_id());
+        }
+
+        miser_jetons(player);
+    }
+}
+
+pub fn miser_jetons(player: &mut Player) {
+    let mise = ask_chips_bet(player);
+    player.play_chips(mise as usize);
+    println!("le joueur {} à misé  {} jetons --> reste {}", player.get_player_id(), mise, player.get_chips());
 }
