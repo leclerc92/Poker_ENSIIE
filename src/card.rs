@@ -30,5 +30,7 @@ impl Card {
         self.color
     }
 
-    pub fn set_color(&mut self, color: usize) {}
+    pub fn set_color(&mut self, color: usize) {
+        self.color = color as i32;
+    }
 }
