@@ -9,7 +9,8 @@ pub struct Player {
     id: usize,
     hand: Vec<Card>,
     played_cards: Vec<Card>,
-    slate: usize,
+    slate: i32,
+    color_slate: i32,
     chips: usize,
     played_chips: usize,
     score: usize,
@@ -27,6 +28,7 @@ impl Player {
             played_chips: 0,
             score: 0,
             winner: 0,
+            color_slate: 3,
         }
     }
 
@@ -79,12 +81,12 @@ impl Player {
         self.played_cards.get(card_index)
     }
 
-    pub fn get_slate(&self) -> usize {
+    pub fn get_slate(&self) -> i32 {
         self.slate
     }
 
     // SETTERS
-    pub fn set_slate(&mut self, pari: usize) {
+    pub fn set_slate(&mut self, pari: i32) {
         self.slate = pari;
     }
 
@@ -101,6 +103,10 @@ impl Player {
             self.played_chips += count;
             self.chips -= count;
         }
+    }
+
+    pub fn set_played_chips(&mut self, count: usize) {
+        if self.chips >= count {}
     }
 
     pub fn get_played_chips(&self) -> usize {
@@ -121,5 +127,13 @@ impl Player {
 
     pub fn set_winner(&mut self, is_winner: usize) {
         self.winner = is_winner;
+    }
+
+    pub fn get_color_slate(&self) -> i32 {
+        self.color_slate
+    }
+
+    pub fn set_color_slate(&mut self, slate: i32) {
+        self.color_slate = slate;
     }
 }

@@ -1,5 +1,4 @@
 use std::io::{self, Write};
-use crate::card::Card;
 use crate::player::Player;
 use crate::board::Board;
 
@@ -123,6 +122,14 @@ pub fn display_board(b: &Board) {
                 }
                 println!();
 
+                // Ligne COLOR
+                for card_index in 0..hand_size {
+                    if let Some(c) = b.get_out_of_game_card(card_index) {
+                        print!("  | Col: {:2} |  ", c.get_color());
+                    }
+                }
+                println!();
+
                 // Ligne inférieure
                 for _ in 0..hand_size {
                     print!("  +---------+  ");
@@ -175,6 +182,14 @@ pub fn display_board(b: &Board) {
         }
         println!();
 
+        // Ligne COLOR
+        for card_index in start..end {
+            if let Some(c) = b.get_out_of_game_card(card_index) {
+                print!("  | Col: {:2} |  ", c.get_color());
+            }
+        }
+        println!();
+
         // Ligne inférieure
         for _ in start..end {
             print!("  +---------+  ");
@@ -199,6 +214,20 @@ pub fn ask_gamble(player: &Player) -> i32 {
 
     // Appeler la fonction de validation
     get_valid_input(&prompt, 0, 1, "RESULTAT INCORRECT ! Ecrivez '0 = Defaite' ou '1 = Victoire'")
+}
+
+pub fn ask_gamble_color(player: &Player) -> i32 {
+    let mut prompt = String::new();
+    let color = get_player_color(player.get_player_id());
+
+    // Construire le message avec la couleur
+    prompt.push_str(&format!(
+        "{}\n> Joueur {} <\nVeuillez faire choix de couleur ('0 = noir' ou '1 = rouge' ou '2 = multicolor') :\n{}",
+        color, player.get_player_id(), RESET
+    ));
+
+    // Appeler la fonction de validation
+    get_valid_input(&prompt, 0, 2, "RESULTAT INCORRECT ! Ecrivez '0 = noir' ou '1 = rouge' ou '2 = multicolor'")
 }
 
 /// Demande à un joueur de faire une mise de jetons
@@ -244,7 +273,7 @@ pub fn ask_number_of_played_cards(player: &Player) -> i32 {
 }
 
 /// Demande à un joueur de choisir une carte à jouer
-pub fn ask_card(player: &Player) -> Option<&Card> {
+pub fn ask_card(player: &Player) -> usize {
     let color = get_player_color(player.get_player_id());
     print!("{}", color);
 
@@ -274,6 +303,14 @@ pub fn ask_card(player: &Player) -> Option<&Card> {
     }
     println!();
 
+    // Ligne color
+    for i in 0..player.get_size_of_hand() {
+        if let Some(card) = player.get_card_in_hand(i) {
+            print!("  | col: {:2} |  ", card.get_color());
+        }
+    }
+    println!();
+
     // Ligne inférieure
     for _ in 0..player.get_size_of_hand() {
         print!("  +---------+  ");
@@ -285,17 +322,14 @@ pub fn ask_card(player: &Player) -> Option<&Card> {
     let id_card = get_valid_input(&prompt, 0, (player.get_size_of_hand() - 1) as i32,
                                   "RESULTAT INCORRECT ! Veuillez choisir un indice valide.") as usize;
 
-    player.get_card_in_hand(id_card) // Retourne la carte correspondant à l'indice choisi
+    id_card
+
 }
 
 /// Affiche les résultats de fin de jeu, y compris les scores des équipes et des joueurs
 pub fn display_end_game(b: &Board) {
     pause_program();
     println!("---------------------------- Fin du jeu ----------------------------\n");
-
-    // Afficher les informations sur les équipes
-    let num_teams = b.get_number_of_teams();
-    println!("Nombre d'équipes : {}\n", num_teams);
 
     // Variables pour déterminer l'équipe gagnante
     let mut highest_score = -1;
@@ -306,7 +340,7 @@ pub fn display_end_game(b: &Board) {
     let colors = [CYAN, GREEN];
 
     // Première passe pour déterminer le score le plus élevé
-    for team_id in 0..num_teams {
+    for team_id in 0..b.get_number_of_teams() {
         let team_score = b.get_score_of_team(team_id) as i32;
         if team_score > highest_score {
             highest_score = team_score;
@@ -317,38 +351,19 @@ pub fn display_end_game(b: &Board) {
         }
     }
 
-    for team_id in 0..num_teams {
+    for team_id in 0..b.get_number_of_teams() {
         // Appliquer une couleur différente pour chaque équipe
         print!("{}", colors[team_id % 2]);
 
         // Informations sur l'équipe
         let team_score = b.get_score_of_team(team_id);
         println!("Équipe {} :", team_id + 1);
-        println!("  - Score : {}", team_score);
+        println!("  - jetons total de l'équipe : {}", team_score);
 
         // Afficher les joueuses de l'équipe
         let num_players = b.get_number_of_players_in_team(team_id);
         println!("  - Nombre de joueuses : {}", num_players);
 
-        for player_index in 0..num_players {
-            if let Some(p) = b.get_player(team_id, player_index) {
-                let player_id = p.get_player_id();
-                let player_slate = p.get_slate();
-                println!("    Joueuse {} :", player_id);
-                println!("      Pari : {}", player_slate);
-
-                // Cartes dans la main
-                let hand_size = p.get_size_of_hand();
-                print!("      Cartes en main ({}) : ", hand_size);
-
-                for card_index in 0..hand_size {
-                    if let Some(c) = p.get_card_in_hand(card_index) {
-                        print!("{} ", c.get_value());
-                    }
-                }
-                println!();
-            }
-        }
         println!();
     }
 
@@ -357,10 +372,10 @@ pub fn display_end_game(b: &Board) {
 
     // Afficher le message de félicitations après avoir affiché toutes les équipes
     if tie {
-        println!("\n======== MATCH NUL ! Plusieurs équipes ont obtenu le score de {} points ========\n",
+        println!("\n======== MATCH NUL ! Plusieurs équipes ont obtenu le score de {} jetons ========\n",
                  highest_score);
     } else {
-        println!("\n======== FÉLICITATIONS À L'ÉQUIPE {} QUI GAGNE AVEC {} POINTS ! ========\n",
+        println!("\n======== FÉLICITATIONS À L'ÉQUIPE {} QUI GAGNE AVEC {} JETONS ! ========\n",
                  winning_team + 1, highest_score);
     }
 
